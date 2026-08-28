@@ -1,0 +1,41 @@
+services:
+
+  ############################
+  # Arikatto Override Server #
+  ############################
+  arikatto_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder # Use the builder stage (has Go compiler) instead of production alpine
+    volumes:
+      - .:/app # Mount current directory to see changes live
+      - go_cache:/root/.cache/go-build # Cache builds to speed up compile times
+      - go_pkg:/go/pkg # Cache Go modules to prevent downloading on every startup
+    # Install Air if not cached and run it for hot reloading
+    command: sh -c "go install github.com/air-verse/air@latest && air"
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres_db
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_NAME: arikatto
+
+  ###################
+  # Visual Database #
+  ###################
+  adminer:
+    image: adminer:latest
+    container_name: visual-db
+    ports:
+      - "8085:8080"
+    depends_on:
+      - postgres_db
+    networks:
+      - arikatto_network
+
+volumes:
+  go_cache:
+  go_pkg:

@@ -1,0 +1,21 @@
+# Binaries and build artifacts
+bin/
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Air live reload temporary directory
+tmp/
+.idea/

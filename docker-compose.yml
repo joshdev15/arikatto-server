@@ -1,0 +1,45 @@
+services:
+
+  ###################
+  # Postgres Server #
+  ###################
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: arikatto
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - arikatto_network
+
+  ###################
+  # Arikatto Server #
+  ###################
+  arikatto_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arikatto-config
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres_db
+      DB_PORT: 5432
+      DB_USER: admin
+      DB_PASSWORD: admin
+      DB_NAME: arikatto
+    depends_on:
+      - postgres_db
+    networks:
+      - arikatto_network
+
+volumes:
+  postgres_data:
+
+networks:
+  arikatto_network:
