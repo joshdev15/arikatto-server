@@ -20,5 +20,11 @@ vendor/
 tmp/
 .idea/
 
-config/app.rsa
-config/app.rsa.pub
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+*.rsa
+*.rsa.pub
+*.pem
+keys/

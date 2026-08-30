@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"arikatto/internal/config"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -14,18 +15,19 @@ import (
 type TokenManager struct {
 	signKey   *rsa.PrivateKey
 	verifyKey *rsa.PublicKey
+	duration  time.Duration
 }
 
-// NewTokenManager loads RSA key files and returns a TokenManager instance
-func NewTokenManager(privateFile, publicFile string) (*TokenManager, error) {
-	privateBytes, err := os.ReadFile(privateFile)
+// NewTokenManager creates a TokenManager from AuthConfig
+func NewTokenManager(cfg *config.AuthConfig) (*TokenManager, error) {
+	privateBytes, err := loadKeyBytes(cfg.PrivateKeyPEM, cfg.PrivateKeyPath, "private")
 	if err != nil {
-		return nil, fmt.Errorf("reading private key file %q: %w", privateFile, err)
+		return nil, err
 	}
 
-	publicBytes, err := os.ReadFile(publicFile)
+	publicBytes, err := loadKeyBytes(cfg.PublicKeyPEM, cfg.PublicKeyPath, "public")
 	if err != nil {
-		return nil, fmt.Errorf("reading public key file %q: %w", publicFile, err)
+		return nil, err
 	}
 
 	signKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateBytes)
@@ -38,19 +40,43 @@ func NewTokenManager(privateFile, publicFile string) (*TokenManager, error) {
 		return nil, fmt.Errorf("parsing RSA public key: %w", err)
 	}
 
+	duration := cfg.Duration
+	if duration <= 0 {
+		duration = 2 * time.Hour
+	}
+
 	return &TokenManager{
 		signKey:   signKey,
 		verifyKey: verifyKey,
+		duration:  duration,
 	}, nil
+}
+
+func loadKeyBytes(pemContent, filePath, keyType string) ([]byte, error) {
+	if pemContent != "" {
+		return []byte(pemContent), nil
+	}
+
+	if filePath != "" {
+		bytes, err := os.ReadFile(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("reading %s key file %q: %w", keyType, filePath, err)
+		}
+		return bytes, nil
+	}
+
+	return nil, fmt.Errorf("no %s key provided (set JWT_%s_KEY or JWT_%s_KEY_PATH)", keyType, keyType, keyType)
 }
 
 // GenerateToken creates and signs a new JWT token for the specified user
 func (tm *TokenManager) GenerateToken(user string) (string, error) {
 	claim := Claim{
-		User:      user,
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		Issuer:    "Arikatto",
+		User: user,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.duration)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "Arikatto",
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claim)
