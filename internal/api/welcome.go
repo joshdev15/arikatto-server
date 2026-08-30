@@ -1,34 +1,41 @@
 package api
 
 import (
-	mw "arikatto/internal/middleware"
-	"arikatto/internal/models"
 	"errors"
 	"net/http"
 )
 
-var (
-	Welcome = models.RouteList{
-		models.Route{
-			Path:    "",
-			Method:  http.MethodGet,
-			Handler: mw.Log(greet),
-		},
-		models.Route{
-			Path:    "/error",
-			Method:  http.MethodGet,
-			Handler: mw.Log(intencionalMistake),
-		},
-	}
-)
+// WelcomeHandler handles general API root and health check endpoints
+type WelcomeHandler struct{}
 
-func greet(w http.ResponseWriter, _ *http.Request) {
-	resp := models.NewResponse(nil, "Arikatto", nil, http.StatusOK)
-	resp.Send(w)
+// NewWelcomeHandler creates a new WelcomeHandler
+func NewWelcomeHandler() *WelcomeHandler {
+	return &WelcomeHandler{}
 }
 
-func intencionalMistake(w http.ResponseWriter, _ *http.Request) {
-	err := errors.New("error")
-	resp := models.NewResponse(nil, "", err, http.StatusInternalServerError)
-	resp.Send(w)
+// Routes returns the list of routes for the welcome endpoint
+func (h *WelcomeHandler) Routes() RouteList {
+	return RouteList{
+		{
+			Path:    "",
+			Method:  http.MethodGet,
+			Handler: Log(h.Greet),
+		},
+		{
+			Path:    "/error",
+			Method:  http.MethodGet,
+			Handler: Log(h.IntentionalMistake),
+		},
+	}
+}
+
+// Greet responds with a greeting
+func (h *WelcomeHandler) Greet(w http.ResponseWriter, _ *http.Request) {
+	JSON(w, http.StatusOK, nil, "Arikatto")
+}
+
+// IntentionalMistake triggers an intentional error response for testing
+func (h *WelcomeHandler) IntentionalMistake(w http.ResponseWriter, _ *http.Request) {
+	err := errors.New("intentional error")
+	Error(w, http.StatusInternalServerError, err)
 }

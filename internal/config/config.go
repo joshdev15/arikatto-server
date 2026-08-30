@@ -10,60 +10,50 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const (
-	userFilePath = "config/server.yml"
-)
+const defaultConfigFile = "config/server.yml"
 
-var (
-	port          string
-	configuration configurationFile
-)
-
-func RunServer(r *http.ServeMux) {
-	fmt.Printf("Starting server on port %s\n", port)
-
-	if configuration.Server.Cors {
-		handler := cors.Default().Handler(r)
-		log.Fatal(http.ListenAndServe(port, handler))
-		return
-	}
-
-	log.Fatal(http.ListenAndServe(port, r))
+// Config represents the application configuration
+type Config struct {
+	Port   string
+	Server struct {
+		Cors             bool `yaml:"cors"`
+		CertificatesPath struct {
+			Private string `yaml:"private"`
+			Public  string `yaml:"public"`
+		} `yaml:"certificates"`
+	} `yaml:"server"`
 }
 
-func loadPort() {
-	defaultPort := "8080"
+// Load loads the configuration from YAML file and environment variables
+func Load() (*Config, error) {
+	var cfg Config
+
+	data, err := os.ReadFile(defaultConfigFile)
+	if err != nil {
+		return nil, fmt.Errorf("reading config file: %w", err)
+	}
+
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("unmarshaling config yaml: %w", err)
+	}
+
 	envPort := os.Getenv("PORT")
 	if envPort == "" {
-		envPort = defaultPort
+		envPort = "8080"
 	}
+	cfg.Port = fmt.Sprintf(":%s", envPort)
 
-	port = fmt.Sprintf(":%s", envPort)
+	return &cfg, nil
 }
 
-func loadConfig(path string) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
+// RunServer starts the HTTP server using the provided handler and configuration
+func RunServer(handler http.Handler, cfg *Config) {
+	fmt.Printf("Starting server on port %s\n", cfg.Port)
+
+	var serverHandler http.Handler = handler
+	if cfg.Server.Cors {
+		serverHandler = cors.Default().Handler(handler)
 	}
 
-	err = yaml.Unmarshal(data, &configuration)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func LoadConfiguration() {
-	loadPort()
-
-	err := loadConfig(userFilePath)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func Get() ConfigurationReader {
-	return &configuration
+	log.Fatal(http.ListenAndServe(cfg.Port, serverHandler))
 }
