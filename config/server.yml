@@ -1,3 +1,5 @@
 server:
   cors: true
-  
+  certificates:
+    private: "./config/app.rsa"
+    public: "./config/app.rsa.pub"

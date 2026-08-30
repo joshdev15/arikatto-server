@@ -19,3 +19,6 @@ vendor/
 # Air live reload temporary directory
 tmp/
 .idea/
+
+config/app.rsa
+config/app.rsa.pub

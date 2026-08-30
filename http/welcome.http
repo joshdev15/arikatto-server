@@ -4,6 +4,6 @@ GET http://localhost:8080/api
 Accept: application/json
 
 ### Error Endpoint
-# Prueba de conexión básica para verificar si el servidor responde
+# Prueba de conexión básica para devolver una respuesta erronea intencional
 GET http://localhost:8080/api/error
 Accept: application/json

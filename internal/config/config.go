@@ -17,13 +17,12 @@ const (
 var (
 	port          string
 	configuration configurationFile
-	corsIsActive  = true
 )
 
 func RunServer(r *http.ServeMux) {
 	fmt.Printf("Starting server on port %s\n", port)
 
-	if corsIsActive {
+	if configuration.Server.Cors {
 		handler := cors.Default().Handler(r)
 		log.Fatal(http.ListenAndServe(port, handler))
 		return
@@ -63,6 +62,8 @@ func LoadConfiguration() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
 
-	corsIsActive = configuration.Server.Cors
+func Get() ConfigurationReader {
+	return &configuration
 }

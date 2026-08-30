@@ -19,6 +19,7 @@ var (
 // - r *mux.Router
 func Server() *http.ServeMux {
 	addRoutes(Welcome)
+	addRoutes(loginRoutes)
 	return r
 }
 
